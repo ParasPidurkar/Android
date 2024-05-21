@@ -1,0 +1,116 @@
+
+From d8552bbf0b626bc95d70b34471ff5db406a81e89 Mon Sep 17 00:00:00 2001
+From: abhishek262.kumar <Abhishek262.Kumar@ril.com>
+Date: Thu, 27 Apr 2023 13:34:37 +0530
+Subject: [PATCH] [AZ-216603] Implementation of Factory reset using hard reset key [Part 3]
+
+Do factory reset directly if HW reset key is pressed for >= 9 secs
+
+Change-Id: I295ed7a751b2efba7f0384f11ee69f0472e95a28
+---
+
+diff --git a/api/current.txt b/api/current.txt
+index 952ccda..f679b93 100644
+--- a/api/current.txt
++++ b/api/current.txt
+@@ -52780,6 +52780,7 @@
+     field public static final int KEYCODE_GRAVE = 68; // 0x44
+     field public static final int KEYCODE_GUIDE = 172; // 0xac
+     field public static final int KEYCODE_H = 36; // 0x24
++    field public static final int KEYCODE_HARD_RESET = 289; // 0x121
+     field public static final int KEYCODE_HEADSETHOOK = 79; // 0x4f
+     field public static final int KEYCODE_HELP = 259; // 0x103
+     field public static final int KEYCODE_HENKAN = 214; // 0xd6
+diff --git a/api/test-current.txt b/api/test-current.txt
+index cf97b84..560eb7d 100644
+--- a/api/test-current.txt
++++ b/api/test-current.txt
+@@ -5126,7 +5126,7 @@
+   public class KeyEvent extends android.view.InputEvent implements android.os.Parcelable {
+     method public static String actionToString(int);
+     method public final void setDisplayId(int);
+-    field public static final int LAST_KEYCODE = 288; // 0x120
++    field public static final int LAST_KEYCODE = 289; // 0x121
+   }
+ 
+   public final class KeyboardShortcutGroup implements android.os.Parcelable {
+diff --git a/core/java/android/view/KeyEvent.java b/core/java/android/view/KeyEvent.java
+index e249c77..21fe94f 100644
+--- a/core/java/android/view/KeyEvent.java
++++ b/core/java/android/view/KeyEvent.java
+@@ -824,13 +824,15 @@
+      * consuming content. May be consumed by system to set account globally.
+      */
+     public static final int KEYCODE_PROFILE_SWITCH = 288;
++    /** Key code constant: Hardware reset button */
++    public static final int KEYCODE_HARD_RESET = 289;
+ 
+     /**
+      * Integer value of the last KEYCODE. Increases as new keycodes are added to KeyEvent.
+      * @hide
+      */
+     @TestApi
+-    public static final int LAST_KEYCODE = KEYCODE_PROFILE_SWITCH;
++    public static final int LAST_KEYCODE = KEYCODE_HARD_RESET;
+ 
+     // NOTE: If you add a new keycode here you must also add it to:
+     //  isSystem()
+@@ -1965,6 +1967,7 @@
+             case KeyEvent.KEYCODE_SYSTEM_NAVIGATION_DOWN:
+             case KeyEvent.KEYCODE_SYSTEM_NAVIGATION_LEFT:
+             case KeyEvent.KEYCODE_SYSTEM_NAVIGATION_RIGHT:
++            case KeyEvent.KEYCODE_HARD_RESET:
+                 return true;
+         }
+ 
+diff --git a/non-updatable-api/current.txt b/non-updatable-api/current.txt
+index 5f15216..95ccdc3 100644
+--- a/non-updatable-api/current.txt
++++ b/non-updatable-api/current.txt
+@@ -50941,6 +50941,7 @@
+     field public static final int KEYCODE_GRAVE = 68; // 0x44
+     field public static final int KEYCODE_GUIDE = 172; // 0xac
+     field public static final int KEYCODE_H = 36; // 0x24
++    field public static final int KEYCODE_HARD_RESET = 289; // 0x121
+     field public static final int KEYCODE_HEADSETHOOK = 79; // 0x4f
+     field public static final int KEYCODE_HELP = 259; // 0x103
+     field public static final int KEYCODE_HENKAN = 214; // 0xd6
+diff --git a/services/core/java/com/android/server/policy/PhoneWindowManager.java b/services/core/java/com/android/server/policy/PhoneWindowManager.java
+index c957300..0ed174c 100755
+--- a/services/core/java/com/android/server/policy/PhoneWindowManager.java
++++ b/services/core/java/com/android/server/policy/PhoneWindowManager.java
+@@ -467,6 +467,8 @@
+     IUiModeManager mUiModeManager;
+     int mUiMode;
+ 
++    boolean downLongPressReboot = false;
++
+     boolean mWakeGestureEnabledSetting;
+     MyWakeGestureListener mWakeGestureListener;
+ 
+@@ -2601,6 +2603,25 @@
+                     + repeatCount + " keyguardOn=" + keyguardOn + " canceled=" + canceled);
+         }
+ 
++        if (keyCode == KeyEvent.KEYCODE_HARD_RESET) {
++            //KEY_REPEAT_DELAY=50ms, if pressed for >= 9 sec, do direct factory reset.
++            if (down && event.getRepeatCount() >= 180) {
++                downLongPressReboot = true;
++            } else if (down) {
++                downLongPressReboot = false;
++            }
++
++            if ( !down && downLongPressReboot) {
++                Intent resetIntent = new Intent(Intent.ACTION_FACTORY_RESET);
++                resetIntent.setPackage("android");
++                resetIntent.setFlags(Intent.FLAG_RECEIVER_FOREGROUND);
++                resetIntent.putExtra(Intent.EXTRA_REASON, "hard_reset");
++                resetIntent.putExtra("shutdown", false);;
++                Log.i(TAG, "Hard reset");
++                mContext.sendBroadcast(resetIntent);
++            }
++        }
++
+         // If we think we might have a volume down & power key chord on the way
+         // but we're not sure, then tell the dispatcher to wait a little while and
+         // try again later before dispatching.

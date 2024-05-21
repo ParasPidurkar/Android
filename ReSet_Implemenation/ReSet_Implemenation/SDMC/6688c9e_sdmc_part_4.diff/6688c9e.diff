@@ -1,0 +1,38 @@
+From 6688c9e466ab560efa02a9eefe309b589158bdee Mon Sep 17 00:00:00 2001
+From: abhishek262.kumar <Abhishek262.Kumar@ril.com>
+Date: Thu, 27 Apr 2023 13:36:09 +0530
+Subject: [PATCH] [AZ-216603]Implementation of Factory reset using hard reset key [Part 4]
+
+Do factory reset directly if HW reset key is pressed for >= 9 secs
+
+Change-Id: I4c165d52804eb2af842118b16d58dca79a4c7aa1
+---
+
+diff --git a/include/android/keycodes.h b/include/android/keycodes.h
+index 214559d..c243b80 100644
+--- a/include/android/keycodes.h
++++ b/include/android/keycodes.h
+@@ -776,8 +776,10 @@
+     AKEYCODE_THUMBS_DOWN = 287,
+     /** Used to switch current account that is consuming content.
+      * May be consumed by system to switch current viewer profile. */
+-    AKEYCODE_PROFILE_SWITCH = 288
++    AKEYCODE_PROFILE_SWITCH = 288,
+ 
++    /** Key code constant: Hardware reset button */
++    AKEYCODE_HARD_RESET = 289
+     // NOTE: If you add a new keycode here you must also add it to several other files.
+     //       Refer to frameworks/base/core/java/android/view/KeyEvent.java for the full list.
+ };
+diff --git a/include/input/InputEventLabels.h b/include/input/InputEventLabels.h
+index b327d76..8b78a6f 100644
+--- a/include/input/InputEventLabels.h
++++ b/include/input/InputEventLabels.h
+@@ -328,6 +328,7 @@
+     DEFINE_KEYCODE(THUMBS_UP),
+     DEFINE_KEYCODE(THUMBS_DOWN),
+     DEFINE_KEYCODE(PROFILE_SWITCH),
++    DEFINE_KEYCODE(HARD_RESET),
+ 
+     { nullptr, 0 }
+ };

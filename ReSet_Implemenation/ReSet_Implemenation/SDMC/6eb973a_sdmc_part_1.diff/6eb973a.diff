@@ -1,0 +1,36 @@
+From 6eb973ad9bb1cad0249c497628cdf24fcf10ec98 Mon Sep 17 00:00:00 2001
+From: abhishek262.kumar <Abhishek262.Kumar@ril.com>
+Date: Thu, 27 Apr 2023 13:29:51 +0530
+Subject: [PATCH] [AZ-216603]Implementation of Factory reset using hard reset key [Part 1]
+
+Do factory reset directly if HW reset key is pressed for >= 9 secs
+
+Change-Id: I0f6e2fa4d64fbf424ddf95baa49b7eb42622bfaf
+---
+
+diff --git a/products/mbox/Vendor_0001_Product_0001.kl b/products/mbox/Vendor_0001_Product_0001.kl
+index f64b6af..628c567 100644
+--- a/products/mbox/Vendor_0001_Product_0001.kl
++++ b/products/mbox/Vendor_0001_Product_0001.kl
+@@ -35,6 +35,8 @@
+ key 109   PAGE_DOWN
+ key 212   CAMERA
+ 
++key 249 HARD_RESET
++
+ #key 16    Q
+ #key 17    W
+ #key 18    E
+diff --git a/products/mbox/Vendor_0001_Product_0002.kl b/products/mbox/Vendor_0001_Product_0002.kl
+index 1e658d5..96463f9 100644
+--- a/products/mbox/Vendor_0001_Product_0002.kl
++++ b/products/mbox/Vendor_0001_Product_0002.kl
+@@ -35,6 +35,8 @@
+ key 109   PAGE_DOWN
+ key 212   CAMERA
+ 
++key 249 HARD_RESET
++
+ #key 16    Q
+ #key 17    W
+ #key 18    E
