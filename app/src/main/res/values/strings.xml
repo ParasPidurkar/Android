@@ -1,6 +1,0 @@
-<resources>
-    <string name="app_name">My Application</string>
-    <string name="send_messgae">Send Now</string>
-    <string name="receive_messgae">Receive Now</string>
-    <string name="delete_messgae">Delete Now</string>
-</resources>
