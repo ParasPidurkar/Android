@@ -1,15 +1,129 @@
-*.iml
-.gradle
-/local.properties
-/.idea/caches
-/.idea/libraries
-/.idea/modules.xml
-/.idea/workspace.xml
-/.idea/navEditor.xml
-/.idea/assetWizardSettings.xml
-.DS_Store
-/build
-/captures
-.externalNativeBuild
-.cxx
+# Built application files
+*.apk
+*.ap_
+
+# Gradle files
+.gradle/
+build/
+*/build/
+
+# Local configuration file (sdk path, etc)
 local.properties
+
+# Log files
+*.log
+
+# Android Studio
+.idea/
+*.iws
+*.iml
+*.ipr
+
+# Keystore files
+*.jks
+
+# Kotlin specific
+*.kotlin_gradle
+*.kotlin_metadata
+*.kotlin_builtins
+
+# IntelliJ IDEA
+*.idea/
+.idea
+*.iml
+*.iws
+/out/
+
+# Others
+.DS_Store
+*.swp
+*~
+*.tmp
+*.temp
+*.bak
+*.old
+*.orig
+*.backup
+*.revert
+
+# Temporary files
+tmp/
+temp/
+
+# Package files
+*.jar
+*.war
+*.ear
+*.zip
+*.tar.gz
+*.rar
+*.tar
+*.7z
+
+# JetBrains IDEs
+.idea/
+*.ipr
+*.iws
+*.iml
+*.out/
+
+# NDK
+obj/
+*.hmap
+.externalNativeBuild/
+.cxx/
+
+# Android local configurations
+.local/
+
+# App Bundles
+*.aab
+
+# Google Services
+google-services.json
+
+# Node modules
+node_modules/
+
+# .vscode
+.vscode/
+
+# Firebase and other service keys
+serviceAccountKey.json
+firebase.json
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Thumbnails
+._*
+
+# Files that might appear in the root of a volume
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# Directories potentially created on remote AFP share
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+
+# Coverage Reports
+coverage/
