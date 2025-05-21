@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:gravity="center">
+
+    <!-- Agent Image -->
+    <ImageView
+        android:id="@+id/agentImage"
+        android:layout_width="150dp"
+        android:layout_height="150dp"
+        android:layout_gravity="center"
+        android:contentDescription="Agent Image"
+        android:src="@drawable/brimstone" /> <!-- Add your image here -->
+
+    <!-- Agent Name -->
+    <TextView
+        android:id="@+id/agentName"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Brimstone"
+        android:textSize="20sp"
+        android:textColor="#FFFFFF"
+        android:layout_gravity="center"
+        android:layout_marginTop="10dp"
+        android:fontFamily="sans-serif-medium" />
+
+    <!-- Agent Special Ability -->
+    <TextView
+        android:id="@+id/specialAbility"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_marginTop="5dp"
+        android:text="Ultimate: Orbital strike"
+        android:textColor="#FFD700"
+        android:textSize="16sp"
+        android:visibility="visible" />
+
+
+    <!-- Button to Trigger Ability -->
+    <Button
+        android:id="@+id/triggerAbilityButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_marginTop="20dp"
+        android:text="Trigger Ability"
+        android:textColor="#FFFFFF" /> <!-- Initially disabled -->
+
+    <TextView
+        android:id="@+id/ultactive"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text=""
+        android:textSize="50sp"
+        android:textColor="#FFFFFF"
+        android:layout_gravity="center"
+        android:layout_marginTop="10dp"
+        android:fontFamily="sans-serif-medium" />
+
+</LinearLayout>
