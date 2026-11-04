@@ -4,6 +4,8 @@
 
 **State is the data a program remembers at a given moment, which decides what it does or shows next.**
 
+> 🎮 **Learn by playing:** [`valorant_state_app/`](valorant_state_app/) is a Compose app that teaches every concept below as a Valorant-style round (kill counter, buy menu, spike timer, and more).
+
 If you could pause a running program and write down every value it holds (variables, objects, open connections, what's on screen), that snapshot is its **state**.
 
 ```kotlin
