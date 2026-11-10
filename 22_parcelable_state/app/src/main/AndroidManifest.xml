@@ -1,0 +1,22 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!--
+        No android:configChanges on the activity, on purpose. Rotating the phone
+        really destroys and recreates MainActivity, so the examples are tested
+        against a true configuration change.
+    -->
+    <application
+        android:allowBackup="true"
+        android:label="Parcelable State"
+        android:theme="@android:style/Theme.Material.NoActionBar">
+        <activity
+            android:name=".MainActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+
+</manifest>
