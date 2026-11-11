@@ -52,6 +52,8 @@ temp/
 
 # Package files
 *.jar
+# ...except the Gradle wrapper, which ./gradlew needs to run
+!gradle-wrapper.jar
 *.war
 *.ear
 *.zip
