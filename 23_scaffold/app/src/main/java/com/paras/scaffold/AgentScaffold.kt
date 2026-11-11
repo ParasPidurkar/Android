@@ -1,5 +1,6 @@
 package com.paras.scaffold
 
+import android.os.Parcelable
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -24,12 +25,14 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.SnapshotStateList
+import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -39,6 +42,7 @@ import com.paras.scaffold.screens.LabSettings
 import com.paras.scaffold.screens.LabSettingsSaver
 import com.paras.scaffold.screens.RosterScreen
 import kotlinx.coroutines.launch
+import kotlinx.parcelize.Parcelize
 
 /** The two destinations shown in the bottom bar. */
 enum class Tab(val label: String, val icon: ImageVector) {
@@ -46,13 +50,30 @@ enum class Tab(val label: String, val icon: ImageVector) {
     Lab("Scaffold Lab", Icons.Filled.Settings),
 }
 
-data class Agent(val name: String, val role: String)
+/** @Parcelize lets an Agent be written into the saved-state Bundle (see 22_parcelable_state). */
+@Parcelize
+data class Agent(val name: String, val role: String) : Parcelable
 
 private val agentPool = listOf(
     Agent("Jett", "Duelist"), Agent("Sova", "Initiator"), Agent("Sage", "Sentinel"),
     Agent("Omen", "Controller"), Agent("Phoenix", "Duelist"), Agent("Killjoy", "Sentinel"),
     Agent("Breach", "Initiator"), Agent("Viper", "Controller"), Agent("Reyna", "Duelist"),
     Agent("Cypher", "Sentinel"), Agent("Skye", "Initiator"), Agent("Brimstone", "Controller"),
+)
+
+/**
+ * Tells rememberSaveable how to put the roster into the Bundle and get it back.
+ *
+ * save:    observable SnapshotStateList -> plain ArrayList of Parcelable agents
+ * restore: ArrayList -> a new observable SnapshotStateList
+ *
+ * A SnapshotStateList can't go into a Bundle itself, so we convert it both ways.
+ * (Saver rather than listSaver: listSaver saves an empty list as "nothing", so a
+ * roster you emptied would come back as the 6 starting agents after rotation.)
+ */
+private val RosterSaver = Saver<SnapshotStateList<Agent>, ArrayList<Agent>>(
+    save = { roster -> ArrayList(roster) },
+    restore = { saved -> saved.toMutableStateList() },
 )
 
 /**
@@ -72,7 +93,8 @@ fun AgentScaffold() {
     // ---- State the slots share -------------------------------------------------
     var selectedTab by rememberSaveable { mutableStateOf(Tab.Roster) }
     var lab by rememberSaveable(stateSaver = LabSettingsSaver) { mutableStateOf(LabSettings()) }
-    val roster = remember { mutableStateListOf(*agentPool.take(6).toTypedArray()) }
+    // rememberSaveable (not remember) so added/removed agents survive rotation.
+    val roster = rememberSaveable(saver = RosterSaver) { agentPool.take(6).toMutableStateList() }
 
     // A snackbar is shown by calling a *suspend* function, so we need a coroutine scope.
     val snackbarHostState = remember { SnackbarHostState() }

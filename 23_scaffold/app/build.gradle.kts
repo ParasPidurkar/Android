@@ -1,6 +1,8 @@
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+    // Generates the Parcelable code for Agent, so the roster can be saved
+    id("org.jetbrains.kotlin.plugin.parcelize")
 }
 
 android {

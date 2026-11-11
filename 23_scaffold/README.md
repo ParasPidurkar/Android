@@ -34,7 +34,7 @@ A Valorant-style team roster with two tabs:
 
 | Tab | What it teaches |
 |---|---|
-| **Roster** | All five slots working together. Add agents with the FAB, delete them, and use **UNDO** in the snackbar. Scroll and watch the top bar hide. |
+| **Roster** | All five slots working together. Add agents with the FAB, delete them, and use **UNDO** in the snackbar. Scroll and watch the top bar hide. The list survives rotation. |
 | **Scaffold Lab** | Switches that turn each slot on and off, plus a live read-out of `innerPadding`. Includes a switch that reproduces the most common Scaffold bug. |
 
 | File | What's in it |
@@ -187,6 +187,27 @@ LazyColumn(
 ### Edge-to-edge
 
 `MainActivity` calls `enableEdgeToEdge()`, so the app draws behind the status bar and navigation bar. Scaffold already includes those system bars in `innerPadding` (through its `contentWindowInsets` parameter). That's why the Lab still shows a top padding of about 24dp when the top bar is hidden: that's the status bar.
+
+## 6. Keeping the roster after rotation
+
+Rotating the phone destroys and recreates the Activity. `remember` would lose the agents you added, so the roster uses `rememberSaveable`, which stores the value in the saved-state `Bundle`:
+
+```kotlin
+@Parcelize
+data class Agent(val name: String, val role: String) : Parcelable
+
+private val RosterSaver = Saver<SnapshotStateList<Agent>, ArrayList<Agent>>(
+    save = { roster -> ArrayList(roster) },              // observable list -> plain list
+    restore = { saved -> saved.toMutableStateList() },   // plain list -> observable list
+)
+
+val roster = rememberSaveable(saver = RosterSaver) { agentPool.take(6).toMutableStateList() }
+```
+
+- `@Parcelize` (plugin `org.jetbrains.kotlin.plugin.parcelize`) makes each `Agent` storable in a `Bundle`.
+- A `SnapshotStateList` itself can't go in a `Bundle`, so the `Saver` converts it to a plain `ArrayList` and back.
+- It uses `saver =`, not `stateSaver =`, because the list is remembered directly, not wrapped in `mutableStateOf`.
+- `Saver` is used instead of `listSaver` because `listSaver` saves an empty list as "nothing". After a rotation, an emptied roster would then come back as the 6 starting agents.
 
 ---
 
