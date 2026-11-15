@@ -6,10 +6,30 @@
         android:theme="@android:style/Theme.Material.NoActionBar">
         <activity
             android:name=".MainActivity"
-            android:exported="true">
+            android:exported="true"
+            android:launchMode="singleTop">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <!--
+                DEEP LINKS: "open MainActivity for any valo://app/... URL".
+                  VIEW        -> the standard action for "show this URI"
+                  DEFAULT     -> required so implicit Intents (startActivity(uri)) can match
+                  BROWSABLE   -> lets a link in a browser / chat app open us
+                The PATH (/agent/..., /career) is NOT filtered here. Android only routes the
+                whole valo://app space to us; the NavController then matches the path against
+                the navDeepLink patterns in ValoNavApp.kt.
+
+                launchMode="singleTop" above: if the app is already open, Android reuses this
+                Activity and calls onNewIntent() instead of stacking a second copy.
+            -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="valo" android:host="app" />
             </intent-filter>
         </activity>
     </application>

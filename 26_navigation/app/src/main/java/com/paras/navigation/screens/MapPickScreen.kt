@@ -7,6 +7,13 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.dp
 
+/**
+ * Sends a RESULT back to the screen that opened it.
+ *
+ * The screen only reports "this map was picked" through onMapPicked. The actual "send result
+ * and close" logic (write to previousBackStackEntry.savedStateHandle, then popBackStack) is in
+ * ValoNavApp. So this screen could be reused anywhere a map needs picking.
+ */
 @Composable
 fun MapPickScreen(
     maps: List<String>,

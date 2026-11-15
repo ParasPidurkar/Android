@@ -15,6 +15,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.paras.navigation.Agent
 
+/**
+ * Reached through LOCK IN with popUpTo<Lobby>, so the back stack is [Lobby, Match].
+ *
+ * Both the system Back button and "Back to lobby" lead to the Lobby, but they work differently:
+ *   - system Back      -> popBackStack(): removes one entry (Match).
+ *   - "Back to lobby"  -> popBackStack<Lobby>(): removes everything above Lobby, however deep.
+ * Open Career from here ([Lobby, Match, Career]), and the two would behave differently.
+ */
 @Composable
 fun MatchScreen(
     agent: Agent,

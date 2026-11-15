@@ -12,6 +12,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
+/**
+ * Opened from the 👤 icon in the shared top bar, so it can be reached from ANY screen.
+ * That's why it uses launchSingleTop = true: repeated taps don't stack copies.
+ *
+ * No arguments, no lambdas. Leaving it is handled entirely by Back / the toolbar ←.
+ */
 @Composable
 fun CareerScreen() {
     Column(

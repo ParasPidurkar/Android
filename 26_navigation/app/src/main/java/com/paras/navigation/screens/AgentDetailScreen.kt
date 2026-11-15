@@ -15,6 +15,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.paras.navigation.Agent
 
+/**
+ * Two navigation arguments (agentId, map). The id was already turned into an Agent by
+ * ValoNavApp, so this screen gets real objects to display.
+ *
+ * onLockIn is just "the user locked in". The interesting part, clearing the back stack with
+ * popUpTo<Lobby>, lives in ValoNavApp. The screen doesn't know or care what happens next.
+ */
 @Composable
 fun AgentDetailScreen(
     agent: Agent,
