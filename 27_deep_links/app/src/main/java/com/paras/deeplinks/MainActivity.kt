@@ -7,35 +7,31 @@ import androidx.activity.enableEdgeToEdge
 import com.paras.deeplinks.ui.theme.ValoTheme
 
 /**
- * The ONLY Activity in the app ("single-Activity architecture").
+ * The ONLY Activity in the app. This is called "single-Activity" style.
  *
- * With Intents you would have LobbyActivity, MapPickActivity, AgentSelectActivity, ... each
- * declared in AndroidManifest.xml, and startActivity() to move between them. The Android system
- * would own the back stack.
+ * Old way (with Intents):
+ *   LobbyActivity, MapPickActivity, AgentSelectActivity, ... one Activity per screen,
+ *   all listed in AndroidManifest.xml, opened with startActivity().
+ *   Android kept the list of open screens.
  *
- * Here there is one Activity. Every "screen" is a composable, and the back stack is owned by
- * the NavController inside ValoNavApp(). The system Back button still works: NavHost registers
- * a BackHandler that pops the NavController's stack. When that stack has only the start
- * destination left, NavHost stops handling Back, the Activity gets it, and the app closes.
+ * New way (this app):
+ *   One Activity. Every screen is a composable function.
+ *   The NavController in ValoNavApp() keeps the list of open screens.
  *
- * Intents are still used where they belong:
- *   - the LAUNCHER intent-filter in the manifest is how the home screen starts this Activity.
- *   - the VIEW intent-filter is how DEEP LINKS (valo://app/...) start it.
+ * The phone's Back button still works: the NavHost catches it and closes the top screen.
+ * When only Lobby is left, the NavHost lets the Activity handle Back, and the app closes.
  *
- * DEEP LINKS AND THIS ACTIVITY
- * There's no deep-link code in this class, on purpose:
- *   - Cold start: the link Intent becomes `intent` (this.intent). The NavController created in
- *     ValoNavApp reads it by itself when the NavHost sets up the graph.
- *   - Warm start: launchMode="singleTop" makes Android call onNewIntent() on this instance.
- *     ValoNavApp registers an OnNewIntent listener on this Activity (ComponentActivity supports
- *     addOnNewIntentListener) and forwards the Intent to navController.handleDeepLink().
- * Keeping it in ValoNavApp means every navigation rule, deep links included, is in one file.
+ * DEEP LINKS
+ * A link like valo://app/career also starts this Activity (see the manifest).
+ * There's no deep link code in this file. It all lives in ValoNavApp:
+ *   - App was closed: the NavController reads the link from the Activity by itself.
+ *   - App was open:   ValoNavApp listens for the new link and passes it to the NavController.
  */
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
-        // savedInstanceState is non-null after rotation or process death. You don't need to
-        // touch it: rememberNavController() restores the whole back stack from it automatically.
+        // After a rotation, savedInstanceState holds the saved back stack.
+        // You don't need to touch it: rememberNavController() restores it for you.
         super.onCreate(savedInstanceState)
         setContent {
             ValoTheme {

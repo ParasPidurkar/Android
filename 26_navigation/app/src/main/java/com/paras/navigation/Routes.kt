@@ -3,67 +3,60 @@ package com.paras.navigation
 import kotlinx.serialization.Serializable
 
 /**
- * ============================================================================================
- *  ROUTES: one Kotlin type per screen (type-safe navigation, Navigation 2.8+)
- * ============================================================================================
+ * ROUTES: one Kotlin type for each screen.
  *
- * A ROUTE answers "which screen, and with what data?".
+ * A route answers two questions: "which screen?" and "with what data?".
  *
- *  - A screen with no arguments  -> a @Serializable object
- *  - A screen that needs data    -> a @Serializable data class; its properties ARE the arguments
+ *   - Screen with NO data   -> an object       (e.g. Lobby)
+ *   - Screen WITH data      -> a data class    (e.g. AgentSelect(map))
+ *     The properties of the class ARE the data the screen needs.
  *
  * WHY @Serializable?
- * Underneath, Navigation still works with URL-like strings and a Bundle of arguments. The
- * kotlinx.serialization compiler plugin generates a serializer for each class, and Navigation
- * uses it to:
- *   1. build the route PATTERN when you register composable<AgentDetail> { }:
- *          com.paras.navigation.AgentDetail/{agentId}/{map}
- *   2. fill in the values when you call navigate(AgentDetail("jett", "Ascent")):
- *          com.paras.navigation.AgentDetail/jett/Ascent
- *   3. decode the arguments Bundle back into an AgentDetail when you call toRoute<AgentDetail>().
+ * Inside, Navigation still uses text paths (like a website URL) and saves data in a Bundle.
+ * @Serializable lets Navigation do the conversion for us:
  *
- * Required properties (no default value, not nullable) become PATH segments: /{agentId}.
- * Properties with a default value, or a nullable type, become QUERY parameters: ?map={map}.
+ *   navigate(AgentDetail("jett", "Ascent"))
+ *        -> becomes the text   ".../AgentDetail/jett/Ascent"
+ *   entry.toRoute<AgentDetail>()
+ *        -> turns it back into AgentDetail(agentId = "jett", map = "Ascent")
  *
- * THE OLD WAY (string routes), for comparison. You'll still see this in older tutorials:
+ * Properties WITHOUT a default value  -> part of the path:   /jett/Ascent
+ * Properties WITH a default (or null) -> optional extras:    ?skin=gold
  *
- *     composable(
- *         "agentDetail/{agentId}/{map}",
- *         arguments = listOf(navArgument("agentId") { type = NavType.StringType }, ...)
- *     ) { entry -> val id = entry.arguments?.getString("agentId") }
+ * THE OLD WAY (text routes), which you'll still see in older tutorials:
  *
+ *     composable("agentDetail/{agentId}/{map}") { ... }
  *     navController.navigate("agentDetail/jett/Ascent")
  *
- * A typo in any of those strings compiles fine and crashes at runtime. With types, the compiler
- * catches a misspelled property, a missing argument or a wrong type.
+ * A typo in those strings compiles fine and crashes when the app runs.
+ * With types, the compiler finds the mistake for you.
  *
- * WHAT CAN BE AN ARGUMENT?
- * Out of the box: String, Int, Long, Float, Double, Boolean, their nullable versions, and some
- * lists/arrays of them. Anything else needs a custom NavType passed as a `typeMap`. That's
- * usually a sign you should pass an ID instead and look the object up on the other side.
+ * WHAT CAN BE SENT AS DATA?
+ * Simple types: String, Int, Long, Float, Double, Boolean (and nullable versions).
+ * For anything bigger, send an ID and look the object up on the other screen.
  * That's what this app does with agentId.
  */
 
-/** Start destination. No arguments, so it's an object. */
+/** First screen. No data, so it's an object. */
 @Serializable
 object Lobby
 
-/** Map picker. No arguments in; it sends a RESULT back out (see PICKED_MAP_KEY). */
+/** Map list. Gets no data, but SENDS a result back (see PICKED_MAP_KEY). */
 @Serializable
 object MapPick
 
-/** Agent list. Needs to know which map was chosen, so `map` is a required argument. */
+/** Agent list. Needs to know the chosen map. */
 @Serializable
 data class AgentSelect(val map: String)
 
 /**
- * One agent. Two arguments. Note it takes the agent's ID, not an Agent object: arguments are
- * stored in a Bundle that must survive process death.
+ * One agent. Takes the agent's ID, not the Agent object.
+ * The data is saved in a Bundle, which should stay small and simple.
  */
 @Serializable
 data class AgentDetail(val agentId: String, val map: String)
 
-/** The match result screen. Reached with popUpTo<Lobby>, so the stack is [Lobby, Match]. */
+/** Match result. Opened with popUpTo<Lobby>, so the back stack is [Lobby, Match]. */
 @Serializable
 data class Match(val agentId: String, val map: String)
 
@@ -72,8 +65,7 @@ data class Match(val agentId: String, val map: String)
 object Career
 
 /**
- * Key used to send the picked map from MapPick back to Lobby through the Lobby entry's
- * SavedStateHandle. Keeping it in one constant means the sender and receiver can't disagree
- * on the spelling. (Results are still untyped key/value pairs, unlike routes.)
+ * The key (name) used to send the picked map from MapPick back to Lobby.
+ * Both screens use this one constant, so they can't spell it differently by mistake.
  */
 const val PICKED_MAP_KEY = "picked_map"

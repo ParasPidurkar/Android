@@ -32,33 +32,38 @@ import com.paras.navigation.screens.MapPickScreen
 import com.paras.navigation.screens.MatchScreen
 
 /**
- * ============================================================================================
- *  THE WHOLE NAVIGATION SETUP LIVES IN THIS ONE FILE. Read it top to bottom.
- * ============================================================================================
+ * ALL the navigation of the app is in this one file. Read it from top to bottom.
  *
- *  The three pieces:
+ * The 3 main pieces:
  *
- *    NavController  = the remote control. It OWNS the back stack (an ordered list of
- *                     NavBackStackEntry objects) and has navigate() / popBackStack().
+ *   NavController  = the REMOTE CONTROL.
+ *                    It keeps the list of open screens (the "back stack") and has the buttons:
+ *                    navigate() to open a screen, popBackStack() to close one.
  *
- *    NavHost        = the TV screen. It looks at the TOP entry of the back stack and draws the
- *                     composable registered for that entry's route. Entries below the top are
- *                     NOT drawn (they're kept in memory, but not composed).
+ *   NavHost        = the TV.
+ *                    It shows the screen that is on TOP of the back stack. Nothing else.
  *
- *    composable<R>  = one channel. "When an entry with route R is on top, draw this."
+ *   composable<X>  = one CHANNEL.
+ *                    "When screen X is on top, draw this UI."
  *
- *  What is a NavBackStackEntry? Think of it as a "mini Activity" for one screen:
- *    - destination      -> which composable<R> block it belongs to
- *    - arguments        -> the route's properties, stored in a Bundle (survive process death)
- *    - savedStateHandle -> a private key/value store for this entry (we use it for results)
- *    - lifecycle        -> RESUMED when on top, CREATED when covered, DESTROYED when popped
- *    - ViewModelStore   -> viewModel() inside composable<R> { } is scoped to THIS entry
+ * The back stack is just a list. The last item is the screen you see:
  *
- *  Design rule used in this app: screens never see the NavController. They get plain lambdas
- *  (onPickMap, onLockIn, ...). Benefits:
- *    1. Every navigation rule is in this file, so you can read the whole app's flow in one place.
- *    2. Screens can be shown in @Preview and tested without creating a NavController.
- *    3. A screen can be reused in another flow by passing different lambdas.
+ *     [Lobby]                         -> you see Lobby
+ *     [Lobby, AgentSelect]            -> you see AgentSelect
+ *     [Lobby, AgentSelect, Agent]     -> you see Agent. Back removes it.
+ *
+ * Each item in the list is a "NavBackStackEntry". Think of it as one open screen with its own:
+ *   - arguments        -> the data it was opened with (e.g. map = "Ascent")
+ *   - savedStateHandle -> a small box to store values in (we use it to send results)
+ *   - lifecycle        -> knows if it's on top, hidden below, or closed
+ *   - ViewModels       -> a viewModel() created inside the screen belongs to this entry
+ *
+ * One rule in this app: screens never get the NavController.
+ * They only get simple lambdas like onPickMap = { ... }. This file decides what they do.
+ * Why?
+ *   1. All navigation is in one place, easy to read.
+ *   2. Screens can be previewed and tested without a NavController.
+ *   3. The same screen can be reused in a different flow.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -66,48 +71,53 @@ fun ValoNavApp() {
     // ----------------------------------------------------------------------------------------
     // 1. CREATE THE NAVCONTROLLER
     // ----------------------------------------------------------------------------------------
-    // rememberNavController() creates ONE NavController and keeps it:
-    //   - across recomposition (like remember)
-    //   - across rotation and process death (it saves the whole back stack into the Activity's
-    //     saved-instance Bundle, like rememberSaveable)
+    // rememberNavController() creates the remote control ONCE and keeps it.
+    // It survives recomposition, screen rotation, and even the app being killed in the
+    // background (it saves the whole back stack and restores it).
     //
-    // Call it exactly once, at the top of the app. If a screen called rememberNavController()
-    // again, it would get a brand-new, EMPTY controller that knows nothing about this back stack.
+    // Create it only here, at the top. If a screen called rememberNavController() again, it
+    // would get a NEW, EMPTY remote control that knows nothing about our screens.
     val navController = rememberNavController()
 
     // ----------------------------------------------------------------------------------------
-    // OBSERVING WHERE WE ARE
+    // WHICH SCREEN ARE WE ON?
     // ----------------------------------------------------------------------------------------
-    // currentBackStackEntryAsState() turns "the top entry" into Compose State. Every navigate()
-    // or pop changes the top entry, so this function recomposes and the top bar updates.
+    // currentEntry = the screen on top of the back stack.
+    // "AsState" means: when the top screen changes, this code runs again (recomposes),
+    // so the top bar title and the back arrow update automatically.
     //
-    // Plain navController.currentBackStackEntry also exists, but it is NOT observable: Compose
-    // would not know to redraw when it changes. Always use the ...AsState() version in UI.
+    // (navController.currentBackStackEntry also exists, but Compose isn't told when it changes,
+    //  so the UI would not update. In UI code, always use the ...AsState() version.)
     val currentEntry by navController.currentBackStackEntryAsState()
+
+    // destination = WHICH screen is on top (Lobby? AgentDetail?), without its data.
+    // currentEntry = one open screen WITH its data (e.g. AgentDetail for "jett").
+    // We only need "which screen" to pick the title, so we use destination.
+    // It can be null for a split second at app start, before Lobby is opened.
     val destination = currentEntry?.destination
 
-    // previousBackStackEntry = the entry just below the top. If there is none, we're on the
-    // start destination (Lobby) and should NOT show a back arrow.
+    // previousBackStackEntry = the screen just BELOW the top one.
+    // If there is none, we are on the first screen (Lobby), so we hide the back arrow.
     //
-    // previousBackStackEntry itself is not observable either. It only stays correct here because
-    // reading currentEntry above already makes this function recompose on every navigation.
+    // Note: this value doesn't update the UI by itself. It still stays correct because
+    // currentEntry (above) already makes this code re-run after every navigation.
     val canGoBack = navController.previousBackStackEntry != null
 
-    // The Scaffold is OUTSIDE the NavHost. That's the big win over "one Activity per screen":
-    // the top bar is created once and stays on screen; only the content area below it changes.
+    // The Scaffold (top bar + content) is OUTSIDE the NavHost.
+    // So the top bar is created once and stays. Only the content area below it changes.
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
                 title = { Text(titleFor(destination), fontWeight = FontWeight.Black) },
                 navigationIcon = {
                     if (canGoBack) {
-                        // navigateUp()   = the ← in the toolbar ("go to the parent screen").
-                        // popBackStack() = the system Back button ("undo the last navigation").
+                        // navigateUp()   = the ← arrow in the top bar: "go to the parent screen".
+                        // popBackStack() = the phone's Back button: "close the top screen".
                         //
-                        // Inside a single app they do the same thing: remove the top entry.
-                        // They only differ when the app was opened from a DEEP LINK by another
-                        // app: Up stays in your app and goes to the logical parent, while Back
-                        // returns to the app that opened you. 27_deep_links shows this.
+                        // Inside our app both do the same thing: remove the top screen.
+                        // They are only different when ANOTHER app opened us with a link:
+                        // Up stays in our app, Back goes back to the other app.
+                        // 27_deep_links shows this.
                         IconButton(onClick = { navController.navigateUp() }) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                         }
@@ -115,17 +125,16 @@ fun ValoNavApp() {
                 },
                 actions = {
                     IconButton(onClick = {
-                        // The lambda after navigate(...) is a NavOptionsBuilder: it configures
-                        // HOW this single navigation behaves.
+                        // The { } after navigate(...) holds OPTIONS for this one navigation.
                         navController.navigate(Career) {
-                            // launchSingleTop = true:
-                            //   "If the TOP entry already has this route, don't push a new one."
+                            // launchSingleTop = true means:
+                            // "If Career is ALREADY the top screen, don't open it again."
                             //
-                            //   Without it:  [Lobby, Career]  -> tap 👤 -> [Lobby, Career, Career]
-                            //   With it:     [Lobby, Career]  -> tap 👤 -> [Lobby, Career]
+                            //   Without it: [Lobby, Career] -> tap 👤 -> [Lobby, Career, Career]
+                            //   With it:    [Lobby, Career] -> tap 👤 -> [Lobby, Career]
                             //
-                            // Note: it only checks the TOP. If Career is deeper in the stack
-                            // (e.g. [Lobby, Career, MapPick]), a new Career is still pushed.
+                            // It only looks at the TOP screen. If Career is lower in the list,
+                            // a new one is still opened.
                             launchSingleTop = true
                         }
                     }) {
@@ -142,21 +151,16 @@ fun ValoNavApp() {
     ) { innerPadding ->
 
         // ------------------------------------------------------------------------------------
-        // 2. THE NAVHOST AND THE NAVIGATION GRAPH
+        // 2. THE NAVHOST: the list of all screens
         // ------------------------------------------------------------------------------------
-        // NavHost connects three things:
-        //   - navController     : whose back stack to display
-        //   - startDestination  : the first entry pushed when the stack is empty (app launch).
-        //                         Pressing Back on it finishes the Activity and closes the app.
-        //   - the trailing lambda: the NAVIGATION GRAPH, i.e. the list of every screen that
-        //                          exists. navigate() to a route not registered here crashes
-        //                          with IllegalArgumentException.
+        // navController    = which remote control to follow.
+        // startDestination = the first screen when the app opens (Lobby).
+        //                    Pressing Back on it closes the app.
+        // the { } block    = every screen that exists in the app.
+        //                    Calling navigate() to a screen that is NOT listed here crashes.
         //
-        // The graph lambda runs once to BUILD the graph. It is not a normal composable body:
-        // the code inside each composable<R> { ... } block is what runs as UI.
-        //
-        // By default, NavHost cross-fades between screens. You can pass enterTransition /
-        // exitTransition / popEnterTransition / popExitTransition to change it.
+        // By default, screens fade into each other. You can change this with
+        // enterTransition / exitTransition (see the README).
         NavHost(
             navController = navController,
             startDestination = Lobby,
@@ -164,136 +168,129 @@ fun ValoNavApp() {
         ) {
 
             // ================================================================================
-            // LOBBY  (start destination, RECEIVES a result)
+            // LOBBY: the first screen. It RECEIVES a result from MapPick.
             // ================================================================================
-            // The lambda parameter `entry` is this screen's NavBackStackEntry.
+            // `entry` = this screen's own back stack entry (its data, its storage box, ...).
             composable<Lobby> { entry ->
                 // RECEIVING A RESULT
-                // MapPick writes "picked_map" into THIS entry's savedStateHandle and pops itself
-                // (see MapPick below). Here we read it.
+                // MapPick puts the chosen map into Lobby's savedStateHandle (its storage box)
+                // under the key "picked_map", then closes itself.
                 //
-                // getStateFlow(key, initialValue) returns a StateFlow that emits whenever that
-                // key changes. collectAsState() converts it to Compose State, so when MapPick
-                // writes "Ascent", the Lobby recomposes with the new map.
+                // Here we WATCH that key:
+                //   getStateFlow(key, null) -> gives a value that changes when the key changes
+                //   collectAsState()        -> turns it into Compose state, so the UI updates
                 //
-                // Why does this survive rotation and process death? Because savedStateHandle is
-                // saved together with the back stack entry. The value stays until Lobby is
-                // popped, so "selected map" behaves like persistent screen state.
+                // So when MapPick writes "Ascent", the Lobby redraws and shows "ASCENT".
                 //
-                // (For a ONE-SHOT event, like "show a snackbar once", you'd call
-                //  entry.savedStateHandle.remove<String>(KEY) after handling it. Otherwise it
-                //  would fire again after rotation.)
+                // The value is saved with the screen, so it survives rotation. It stays until
+                // the Lobby is closed.
+                //
+                // (For a one-time event, like showing a message once, you would remove the
+                //  value after using it: entry.savedStateHandle.remove<String>(KEY).
+                //  Otherwise it would show again after rotation.)
                 val pickedMap by entry.savedStateHandle
                     .getStateFlow<String?>(PICKED_MAP_KEY, null)
                     .collectAsState()
 
                 LobbyScreen(
                     selectedMap = pickedMap,
-                    // A route with NO arguments is an object, so navigate to the object itself.
-                    // Stack: [Lobby] -> [Lobby, MapPick]
+                    // Screen with NO data -> navigate to the object itself.
+                    // Back stack: [Lobby] -> [Lobby, MapPick]
                     onPickMap = { navController.navigate(MapPick) },
-                    // A route WITH arguments is a data class: create an instance with the values.
-                    // Stack: [Lobby] -> [Lobby, AgentSelect(map)]
+                    // Screen WITH data -> create the class with the values.
+                    // Back stack: [Lobby] -> [Lobby, AgentSelect("Ascent")]
                     onSelectAgent = { map -> navController.navigate(AgentSelect(map)) },
                 )
             }
 
             // ================================================================================
-            // MAP PICK  (SENDS a result back, then pops itself)
+            // MAP PICK: SENDS a result back to Lobby, then closes itself.
             // ================================================================================
             composable<MapPick> {
                 MapPickScreen(
                     maps = ValoData.maps,
                     onMapPicked = { map ->
-                        // 3. RETURNING A RESULT
+                        // 3. SENDING A RESULT BACK
                         //
-                        // There's no startActivityForResult() between composable screens.
-                        // Instead, write into the PREVIOUS entry's savedStateHandle:
+                        // There is no startActivityForResult() here. Instead we write the value
+                        // into the storage box of the screen BELOW us (the Lobby):
                         //
                         //   back stack:  [Lobby, MapPick]
                         //                   ▲       ▲
                         //   previousBackStackEntry  currentBackStackEntry
                         //
-                        // ORDER MATTERS: write first, then pop. After popBackStack(), Lobby is
-                        // on top and previousBackStackEntry would be null (nothing under Lobby).
+                        // ORDER MATTERS: write first, then close.
+                        // After popBackStack(), Lobby is on top and there is nothing below it,
+                        // so previousBackStackEntry would be null and the write would be lost.
                         //
-                        // ?. is used because previousBackStackEntry can be null in theory (if
-                        // MapPick were ever the start destination).
+                        // ?. = "only if it's not null", just to be safe.
                         navController.previousBackStackEntry
                             ?.savedStateHandle
                             ?.set(PICKED_MAP_KEY, map)
 
-                        // Remove MapPick from the stack. Its entry is DESTROYED: its lifecycle
-                        // ends and any ViewModels scoped to it are cleared.
-                        // Stack: [Lobby, MapPick] -> [Lobby]
+                        // Close MapPick. It is removed and destroyed (its ViewModels too).
+                        // Back stack: [Lobby, MapPick] -> [Lobby]
                         navController.popBackStack()
                     },
                 )
             }
 
             // ================================================================================
-            // AGENT SELECT  (RECEIVES an argument)
+            // AGENT SELECT: RECEIVES one argument (map).
             // ================================================================================
             composable<AgentSelect> { entry ->
                 // 4. READING ARGUMENTS
                 //
-                // When we called navigate(AgentSelect("Ascent")), Navigation encoded the data
-                // class into the entry's arguments Bundle (map = "Ascent").
-                // toRoute<AgentSelect>() decodes that Bundle back into an AgentSelect instance.
+                // We opened this screen with navigate(AgentSelect("Ascent")).
+                // toRoute<AgentSelect>() gives us that AgentSelect object back, so route.map
+                // is "Ascent".
                 //
-                // Because it comes from the Bundle, this works after rotation and process
-                // death too, with no extra code.
+                // The data is saved with the screen, so this also works after rotation or
+                // after Android kills and restores the app. No extra code needed.
                 val route = entry.toRoute<AgentSelect>()
 
                 AgentSelectScreen(
                     map = route.map,
                     agents = ValoData.agents,
                     onAgentClick = { agent ->
-                        // Pass the agent's ID, not the Agent object.
-                        //   - Arguments live in a Bundle, which must survive process death and
-                        //     has a size limit (~1 MB for the whole Activity's saved state).
-                        //   - The receiving screen looks the agent up again by id.
-                        // This is the same rule as with Intents: putExtra(id), not the object.
+                        // Send only the agent's ID, not the whole Agent object.
+                        //   - Arguments are saved in a Bundle, which must be small and simple.
+                        //   - The next screen finds the agent again with the ID.
+                        // Same rule as with Intents: putExtra(id), not the whole object.
                         //
-                        // Stack: [Lobby, AgentSelect] -> [Lobby, AgentSelect, AgentDetail]
+                        // Back stack: [Lobby, AgentSelect] -> [Lobby, AgentSelect, AgentDetail]
                         navController.navigate(AgentDetail(agentId = agent.id, map = route.map))
                     },
                 )
             }
 
             // ================================================================================
-            // AGENT DETAIL  (two arguments, and clears the stack on LOCK IN)
+            // AGENT DETAIL: two arguments. LOCK IN clears the screens in between.
             // ================================================================================
             composable<AgentDetail> { entry ->
                 val route = entry.toRoute<AgentDetail>()
                 AgentDetailScreen(
-                    // id -> object lookup happens HERE, at the navigation layer, so the screen
-                    // just receives a ready-to-use Agent.
+                    // Turn the ID back into an Agent HERE, so the screen gets a ready Agent.
                     agent = ValoData.agent(route.agentId),
                     map = route.map,
                     onLockIn = {
                         navController.navigate(Match(route.agentId, route.map)) {
-                            // 5. CLEARING THE STACK WITH popUpTo
+                            // 5. CLEARING SCREENS WITH popUpTo
                             //
-                            // popUpTo<Lobby> means: BEFORE pushing Match, pop entries off the
-                            // top until Lobby is on top.
+                            // popUpTo<Lobby> means: BEFORE opening Match, close every screen
+                            // above Lobby.
                             //
                             //   inclusive = false -> Lobby itself stays.
-                            //   inclusive = true  -> Lobby is popped too, so Back from Match
-                            //                        would close the app. Use that for
-                            //                        Login -> Home ("never go back to login").
+                            //   inclusive = true  -> Lobby is closed too. Then Back from Match
+                            //                        would close the app. (Useful for
+                            //                        Login -> Home: never go back to login.)
                             //
                             // Step by step:
-                            //   start:         [Lobby, AgentSelect, AgentDetail]
-                            //   popUpTo Lobby: [Lobby]
-                            //   push Match:    [Lobby, Match]
+                            //   start:          [Lobby, AgentSelect, AgentDetail]
+                            //   popUpTo Lobby:  [Lobby]
+                            //   open Match:     [Lobby, Match]
                             //
-                            // Result: once you lock in, Back can't return to agent select.
-                            // The popped entries are DESTROYED, so their ViewModels and saved
-                            // state are freed.
-                            //
-                            // The Intent equivalent needs FLAG_ACTIVITY_CLEAR_TOP plus finish()
-                            // calls. Here the resulting stack is visible in one line.
+                            // Result: after LOCK IN, Back can't return to agent select.
                             popUpTo<Lobby> { inclusive = false }
                         }
                     },
@@ -301,33 +298,31 @@ fun ValoNavApp() {
             }
 
             // ================================================================================
-            // MATCH  (jumps back several screens at once)
+            // MATCH: goes back to Lobby in one step.
             // ================================================================================
             composable<Match> { entry ->
                 val route = entry.toRoute<Match>()
                 MatchScreen(
                     agent = ValoData.agent(route.agentId),
                     map = route.map,
-                    // 6. POPPING TO A KNOWN DESTINATION
+                    // 6. GOING BACK TO A SPECIFIC SCREEN
                     //
-                    // popBackStack()          -> remove exactly ONE entry.
-                    // popBackStack<Lobby>(..) -> remove entries until Lobby is on top, however
-                    //                            many there are. (inclusive = false keeps Lobby.)
+                    // popBackStack()          -> close ONE screen.
+                    // popBackStack<Lobby>(..) -> close screens until Lobby is on top,
+                    //                            no matter how many. (inclusive = false keeps Lobby.)
                     //
-                    // Here the stack is [Lobby, Match], so both behave the same. But if Career
-                    // were opened on top ([Lobby, Match, Career]) and Career had this button,
-                    // popBackStack<Lobby> would still go straight to the Lobby.
+                    // Here the stack is [Lobby, Match], so both do the same.
+                    // But with [Lobby, Match, Career], popBackStack<Lobby> would still jump
+                    // straight to Lobby.
                     //
-                    // It returns a Boolean: false if Lobby wasn't found in the stack.
-                    //
-                    // Note: Lobby's savedStateHandle still holds "picked_map", so the lobby
-                    // still shows the map you chose earlier.
+                    // The Lobby still shows the map you picked, because its storage box
+                    // was never cleared.
                     onBackToLobby = { navController.popBackStack<Lobby>(inclusive = false) },
                 )
             }
 
             // ================================================================================
-            // CAREER  (no arguments, opened with launchSingleTop from the top bar)
+            // CAREER: no arguments. Opened from the 👤 icon with launchSingleTop.
             // ================================================================================
             composable<Career> {
                 CareerScreen()
@@ -337,16 +332,16 @@ fun ValoNavApp() {
 }
 
 /**
- * Picks the top-bar title for whatever destination is on top.
+ * Picks the top bar title for the screen on top.
  *
- * hasRoute<T>() asks "was this destination declared with composable<T>?". It compares the route
- * TYPE, not the argument values, so AgentDetail("jett", ...) and AgentDetail("sova", ...) both
- * match hasRoute<AgentDetail>().
+ * hasRoute<X>() asks: "is this the X screen?"
+ * It checks only the screen TYPE, not the data. So AgentDetail for "jett" and AgentDetail
+ * for "sova" both match hasRoute<AgentDetail>().
  *
- * Use the same check to highlight the selected item in a bottom navigation bar.
+ * You'd use the same check to highlight the selected tab in a bottom bar.
  */
 private fun titleFor(destination: NavDestination?): String = when {
-    // null for a moment before the NavHost has pushed the start destination.
+    // null for a split second at app start, before Lobby is opened.
     destination == null -> ""
     destination.hasRoute<Lobby>() -> "LOBBY"
     destination.hasRoute<MapPick>() -> "CHOOSE MAP"

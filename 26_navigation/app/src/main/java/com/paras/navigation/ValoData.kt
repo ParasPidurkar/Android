@@ -9,10 +9,13 @@ data class Agent(
 )
 
 /**
- * The app's "database". It's a plain object, so the data exists in every process start
- * without being saved anywhere. That's what makes passing only an ID safe: after process death,
- * ValoData.agent("jett") still finds Jett. In a real app this would be a repository backed by
- * Room or a network API, and the screen would load by id (usually inside a ViewModel).
+ * The app's "database": a simple list in code.
+ *
+ * Because it's in the code, the data is always there, even after Android kills and restarts
+ * the app. That's why passing only an ID is safe: ValoData.agent("jett") always finds Jett.
+ *
+ * In a real app this would be a repository (Room database or a server), and the screen
+ * would load the data by ID, usually inside a ViewModel.
  */
 object ValoData {
     val agents = listOf(
@@ -28,11 +31,12 @@ object ValoData {
 
     val maps = listOf("Ascent", "Bind", "Haven", "Split", "Icebox", "Breeze", "Lotus", "Sunset")
 
-    /**
-     * Look an agent up by the id that came through a navigation argument.
-     * first { } throws if the id is unknown. That's fine here because ids only come from
-     * this list. With deep links (where anyone can type a URL) you'd want firstOrNull and an
-     * error screen. 27_deep_links shows that.
+        /**
+     * Find an agent by the ID that came from navigation.
+     *
+     * first { } crashes if the ID doesn't exist. That's OK here, because IDs only come from
+     * our own list. If anyone could type the ID (like in a link), you would use firstOrNull
+     * and show an error instead. 27_deep_links shows that.
      */
     fun agent(id: String): Agent = agents.first { it.id == id }
 }

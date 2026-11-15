@@ -14,50 +14,37 @@
             </intent-filter>
 
             <!--
-                DEEP LINKS: "open MainActivity for any valo://app/... URL".
+                DEEP LINKS: "open MainActivity for any link that starts with valo://app"
 
-                An <intent-filter> is how Android decides which Activity can handle an
-                IMPLICIT Intent (one that says what to do, not which class to start). A deep
-                link is exactly that: Intent(ACTION_VIEW, Uri.parse("valo://app/career")).
-                For the Intent to reach us, ALL of these must match:
+                An intent-filter tells Android which Intents this Activity accepts.
+                A link is sent as an Intent, so ALL 4 lines below must match:
 
-                  <action VIEW>         The standard action for "show the thing at this URI".
-                                        Browsers, chat apps and adb all send VIEW for links.
+                  action VIEW         = "show this link". Browsers, apps and adb all use it.
 
-                  <category DEFAULT>    startActivity() silently adds CATEGORY_DEFAULT to
-                                        every implicit Intent. Without this line the filter
-                                        never matches, and nothing happens. Easy to forget.
+                  category DEFAULT    = REQUIRED. Android adds it to every startActivity()
+                                        call. Forget it and the link never opens the app.
 
-                  <category BROWSABLE>  Allows web browsers (and apps that open links the way a
-                                        browser does) to start us. Without it, a link tapped in
-                                        Chrome is ignored even though adb still works.
+                  category BROWSABLE  = lets a browser (like Chrome) open the app.
+                                        Without it, adb works but tapping a link doesn't.
 
-                  <data scheme host>    Which URIs. Here: scheme "valo", host "app", any path.
+                  data scheme + host  = which links: valo://app/... (any path after it).
 
-                WHY NO android:path / pathPrefix HERE?
-                The manifest only decides "this URI belongs to this app". Picking the SCREEN
-                from the path (/agent/..., /career) is the NavController's job, using the
-                navDeepLink patterns in ValoNavApp.kt. So adding a new deep-linkable screen
-                needs no manifest change, as long as it stays under valo://app.
-                A URI like valo://app/nonsense still opens the app (it passes this filter),
-                but matches no navDeepLink, so you simply land on the Lobby.
+                There's no path here on purpose. The manifest only says "this app handles
+                valo://app". The NavController picks the SCREEN from the rest of the link
+                (/agent/..., /career), using navDeepLink in ValoNavApp.kt.
+                So adding a new linkable screen needs no change here.
 
-                CUSTOM SCHEME vs HTTPS ("App Links")
-                valo:// is a custom scheme: easy to test, no website needed. But any app can
-                claim the same scheme, and browsers don't make it clickable as plain text.
-                Production apps usually use https://valo.example.com/... with
-                android:autoVerify="true" plus an assetlinks.json file on that domain, which
-                proves you own it so Android opens your app without asking.
-                The navDeepLink code would stay the same, only the base URL changes.
+                valo:// is a custom link type: easy to test, no website needed.
+                Real apps often use normal https:// links ("App Links") instead. Those need
+                android:autoVerify="true" and a file on your website to prove you own it.
 
-                The other attributes on <activity> above:
-                  exported="true"        Other apps may start this Activity. Required for the
-                                         launcher AND for deep links. It also means anyone can
-                                         send any URL, so treat the values as untrusted.
-                  launchMode="singleTop" If MainActivity is already on top of its task, Android
-                                         reuses it and calls onNewIntent() instead of stacking a
-                                         second copy (two copies = two separate back stacks).
-                                         ValoNavApp forwards that Intent to the NavController.
+                On the <activity> above:
+                  exported="true"         = other apps may open this Activity. Needed for the
+                                            home screen icon AND for links. It also means
+                                            anyone can send any link, so check the values.
+                  launchMode="singleTop"  = if the app is already open, reuse it instead of
+                                            starting a second copy. The new link then arrives
+                                            in onNewIntent(), and ValoNavApp handles it.
             -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />

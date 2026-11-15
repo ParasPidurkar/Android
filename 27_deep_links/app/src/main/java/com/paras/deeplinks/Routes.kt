@@ -3,67 +3,60 @@ package com.paras.deeplinks
 import kotlinx.serialization.Serializable
 
 /**
- * ============================================================================================
- *  ROUTES: one Kotlin type per screen (type-safe navigation, Navigation 2.8+)
- * ============================================================================================
+ * ROUTES: one Kotlin type for each screen.
  *
- * A ROUTE answers "which screen, and with what data?".
+ * A route answers two questions: "which screen?" and "with what data?".
  *
- *  - A screen with no arguments  -> a @Serializable object
- *  - A screen that needs data    -> a @Serializable data class; its properties ARE the arguments
+ *   - Screen with NO data   -> an object       (e.g. Lobby)
+ *   - Screen WITH data      -> a data class    (e.g. AgentSelect(map))
+ *     The properties of the class ARE the data the screen needs.
  *
  * WHY @Serializable?
- * Underneath, Navigation still works with URL-like strings and a Bundle of arguments. The
- * kotlinx.serialization compiler plugin generates a serializer for each class, and Navigation
- * uses it to:
- *   1. build the route PATTERN when you register composable<AgentDetail> { }:
- *          com.paras.deeplinks.AgentDetail/{agentId}/{map}
- *   2. fill in the values when you call navigate(AgentDetail("jett", "Ascent")):
- *          com.paras.deeplinks.AgentDetail/jett/Ascent
- *   3. decode the arguments Bundle back into an AgentDetail when you call toRoute<AgentDetail>().
+ * Inside, Navigation still uses text paths (like a website URL) and saves data in a Bundle.
+ * @Serializable lets Navigation do the conversion for us:
  *
- * Required properties (no default value, not nullable) become PATH segments: /{agentId}.
- * Properties with a default value, or a nullable type, become QUERY parameters: ?map={map}.
+ *   navigate(AgentDetail("jett", "Ascent"))
+ *        -> becomes the text   ".../AgentDetail/jett/Ascent"
+ *   entry.toRoute<AgentDetail>()
+ *        -> turns it back into AgentDetail(agentId = "jett", map = "Ascent")
  *
- * THE OLD WAY (string routes), for comparison. You'll still see this in older tutorials:
+ * Properties WITHOUT a default value  -> part of the path:   /jett/Ascent
+ * Properties WITH a default (or null) -> optional extras:    ?skin=gold
  *
- *     composable(
- *         "agentDetail/{agentId}/{map}",
- *         arguments = listOf(navArgument("agentId") { type = NavType.StringType }, ...)
- *     ) { entry -> val id = entry.arguments?.getString("agentId") }
+ * THE OLD WAY (text routes), which you'll still see in older tutorials:
  *
+ *     composable("agentDetail/{agentId}/{map}") { ... }
  *     navController.navigate("agentDetail/jett/Ascent")
  *
- * A typo in any of those strings compiles fine and crashes at runtime. With types, the compiler
- * catches a misspelled property, a missing argument or a wrong type.
+ * A typo in those strings compiles fine and crashes when the app runs.
+ * With types, the compiler finds the mistake for you.
  *
- * WHAT CAN BE AN ARGUMENT?
- * Out of the box: String, Int, Long, Float, Double, Boolean, their nullable versions, and some
- * lists/arrays of them. Anything else needs a custom NavType passed as a `typeMap`. That's
- * usually a sign you should pass an ID instead and look the object up on the other side.
+ * WHAT CAN BE SENT AS DATA?
+ * Simple types: String, Int, Long, Float, Double, Boolean (and nullable versions).
+ * For anything bigger, send an ID and look the object up on the other screen.
  * That's what this app does with agentId.
  */
 
-/** Start destination. No arguments, so it's an object. */
+/** First screen. No data, so it's an object. */
 @Serializable
 object Lobby
 
-/** Map picker. No arguments in; it sends a RESULT back out (see PICKED_MAP_KEY). */
+/** Map list. Gets no data, but SENDS a result back (see PICKED_MAP_KEY). */
 @Serializable
 object MapPick
 
-/** Agent list. Needs to know which map was chosen, so `map` is a required argument. */
+/** Agent list. Needs to know the chosen map. */
 @Serializable
 data class AgentSelect(val map: String)
 
 /**
- * One agent. Two arguments. Note it takes the agent's ID, not an Agent object: arguments are
- * stored in a Bundle that must survive process death.
+ * One agent. Takes the agent's ID, not the Agent object.
+ * The data is saved in a Bundle, which should stay small and simple.
  */
 @Serializable
 data class AgentDetail(val agentId: String, val map: String)
 
-/** The match result screen. Reached with popUpTo<Lobby>, so the stack is [Lobby, Match]. */
+/** Match result. Opened with popUpTo<Lobby>, so the back stack is [Lobby, Match]. */
 @Serializable
 data class Match(val agentId: String, val map: String)
 
@@ -72,38 +65,32 @@ data class Match(val agentId: String, val map: String)
 object Career
 
 /**
- * Key used to send the picked map from MapPick back to Lobby through the Lobby entry's
- * SavedStateHandle. Keeping it in one constant means the sender and receiver can't disagree
- * on the spelling. (Results are still untyped key/value pairs, unlike routes.)
+ * The key (name) used to send the picked map from MapPick back to Lobby.
+ * Both screens use this one constant, so they can't spell it differently by mistake.
  */
 const val PICKED_MAP_KEY = "picked_map"
 
 /**
- * Base URI for every deep link into this app.
+ * The start of every deep link (a link that opens a screen of this app directly).
  *
- * It must match the <data android:scheme="valo" android:host="app"/> in AndroidManifest.xml.
- * The manifest decides "valo://app/... belongs to this app". Each navDeepLink in ValoNavApp
- * then adds a path under it and decides which SCREEN opens.
+ * It must match <data android:scheme="valo" android:host="app"/> in AndroidManifest.xml.
+ *   - The manifest tells Android: "links starting with valo://app belong to this app".
+ *   - Each navDeepLink in ValoNavApp then says which SCREEN opens for which link.
  *
- *   URL                                   Route created                  Back stack
- *   valo://app/lobby                      Lobby                          [Lobby]
- *   valo://app/career                     Career                         [Lobby, Career]
- *   valo://app/agents/{map}               AgentSelect(map)               [Lobby, AgentSelect]
- *   valo://app/agent/{agentId}/{map}      AgentDetail(agentId, map)      [Lobby, AgentDetail]
+ *   Link                                  Opens                        Back stack
+ *   valo://app/lobby                      Lobby                        [Lobby]
+ *   valo://app/career                     Career                       [Lobby, Career]
+ *   valo://app/agents/{map}               AgentSelect(map)             [Lobby, AgentSelect]
+ *   valo://app/agent/{agentId}/{map}      AgentDetail(agentId, map)    [Lobby, AgentDetail]
  *
- * (The back stacks are for the usual case, a link from adb, a browser or a notification. A link
- *  opened inside another app's task gives only [Target]. See DEEP LINKS PART 1 in ValoNavApp.)
+ * The {parts} come from the route's properties. AgentDetail has agentId and map,
+ * so its link ends with /{agentId}/{map}.
  *
- * The {placeholders} come from the route's fields: navDeepLink<AgentDetail>(basePath =
- * "$DEEP_LINK_BASE/agent") appends /{agentId}/{map} because those are AgentDetail's required
- * properties. Rename a property and the URL changes with it, so URLs that were already shared
- * would stop working. Deep link URLs are a public API: change them carefully.
+ * Careful: if you rename a property, the link changes too, and links people already shared
+ * stop working.
  *
- * Deliberately NOT deep-linkable:
- *   - MapPick: it only makes sense when someone (Lobby) is waiting for its result.
- *   - Match:   you should only get there by locking in, not by typing a URL.
- *
- * It's a `const val` so it can be used in string templates at compile time, and so the URL
- * prefix is written in exactly one Kotlin place.
+ * NOT linkable, on purpose:
+ *   - MapPick: it only works when the Lobby is below it, waiting for the result.
+ *   - Match:   you should only get there by pressing LOCK IN, not by typing a link.
  */
 const val DEEP_LINK_BASE = "valo://app"

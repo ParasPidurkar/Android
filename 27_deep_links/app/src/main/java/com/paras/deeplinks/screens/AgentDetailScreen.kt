@@ -16,11 +16,11 @@ import androidx.compose.ui.unit.sp
 import com.paras.deeplinks.Agent
 
 /**
- * Two navigation arguments (agentId, map). The id was already turned into an Agent by
- * ValoNavApp, so this screen gets real objects to display.
+ * Gets two navigation arguments: agentId and map.
+ * ValoNavApp already turned agentId into an Agent, so this screen gets a ready-to-use Agent.
  *
- * onLockIn is just "the user locked in". The interesting part, clearing the back stack with
- * popUpTo<Lobby>, lives in ValoNavApp. The screen doesn't know or care what happens next.
+ * onLockIn only means "the user pressed LOCK IN".
+ * What happens next (open Match and close the screens in between) is decided in ValoNavApp.
  */
 @Composable
 fun AgentDetailScreen(

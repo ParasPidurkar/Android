@@ -14,19 +14,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 /**
- * START DESTINATION. The first screen, and the bottom of the back stack.
+ * FIRST SCREEN (start destination). It's always at the bottom of the back stack.
  *
- * Notice what this screen does NOT know: NavController, routes, or that MapPick exists.
- * It receives:
- *   - selectedMap   : plain data. ValoNavApp reads it from the Lobby entry's SavedStateHandle,
- *                     where MapPick left it as a RESULT.
- *   - onPickMap     : "the user wants to choose a map". ValoNavApp decides that means
- *                     navigate(MapPick).
- *   - onSelectAgent : "the user wants to pick an agent for this map". ValoNavApp turns it into
- *                     navigate(AgentSelect(map)).
+ * This screen knows NOTHING about navigation. It doesn't know the NavController or MapPick.
+ * It only gets:
+ *   - selectedMap   : the map to show. ValoNavApp reads it from the result MapPick sent back.
+ *   - onPickMap     : "the user wants to choose a map". ValoNavApp opens MapPick.
+ *   - onSelectAgent : "the user wants to pick an agent". ValoNavApp opens AgentSelect(map).
  *
- * This is "state down, events up" (state hoisting), applied to navigation. Because of it you
- * could @Preview this screen with LobbyScreen("Ascent", {}, {}) and no NavController.
+ * Data goes DOWN into the screen, events go UP out of it ("state hoisting").
+ * Bonus: you can preview it with LobbyScreen("Ascent", {}, {}), no NavController needed.
  */
 @Composable
 fun LobbyScreen(

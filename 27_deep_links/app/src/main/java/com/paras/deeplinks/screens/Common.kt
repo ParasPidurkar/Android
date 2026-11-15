@@ -72,7 +72,7 @@ fun ValoRow(
     }
 }
 
-/** Small grey caption that says which Navigation concept the screen shows. */
+/** Small grey text that explains which navigation idea the screen shows. */
 @Composable
 fun Lesson(text: String) {
     Text(

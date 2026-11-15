@@ -9,17 +9,16 @@ import androidx.compose.ui.unit.dp
 import com.paras.navigation.Agent
 
 /**
- * Receives a navigation ARGUMENT: `map`.
+ * Gets one navigation ARGUMENT: `map`.
  *
- * ValoNavApp got it with entry.toRoute<AgentSelect>().map and passes it in as a normal
- * parameter. The screen doesn't care that it came from navigation.
+ * ValoNavApp reads it with entry.toRoute<AgentSelect>().map and passes it in like a normal
+ * parameter. The screen doesn't know it came from navigation.
  *
- * onAgentClick hands back the whole Agent for convenience. ValoNavApp then navigates with only
- * agent.id, because arguments should be small and bundle-friendly.
+ * onAgentClick gives back the whole Agent (easy to use). ValoNavApp then sends only agent.id
+ * to the next screen, because navigation data should stay small.
  *
- * Try it: scroll this list, open an agent, press Back. The scroll position is still there.
- * LazyColumn's state uses rememberSaveable, and NavHost keeps saveable state per back stack
- * entry while the entry is covered.
+ * Try it: scroll the list, open an agent, press Back. You're at the same scroll position.
+ * The NavHost remembers the saved state of each screen while it's hidden below another one.
  */
 @Composable
 fun AgentSelectScreen(

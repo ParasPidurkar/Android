@@ -13,10 +13,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 /**
- * Opened from the 👤 icon in the shared top bar, so it can be reached from ANY screen.
- * That's why it uses launchSingleTop = true: repeated taps don't stack copies.
+ * Opened from the 👤 icon in the top bar, which is visible on EVERY screen.
+ * It uses launchSingleTop = true, so tapping 👤 again doesn't open a second Career.
  *
- * No arguments, no lambdas. Leaving it is handled entirely by Back / the toolbar ←.
+ * No arguments and no lambdas. You leave it with Back or the ← arrow.
  */
 @Composable
 fun CareerScreen() {
