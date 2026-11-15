@@ -30,13 +30,9 @@ object ValoData {
 
     /**
      * Look an agent up by the id that came through a navigation argument.
-     * first { } throws if the id is unknown. That's fine for ids that came from this list.
+     * first { } throws if the id is unknown. That's fine here because ids only come from
+     * this list. With deep links (where anyone can type a URL) you'd want firstOrNull and an
+     * error screen. 27_deep_links shows that.
      */
     fun agent(id: String): Agent = agents.first { it.id == id }
-
-    /**
-     * Deep-link-safe lookup. A deep link is a URL anyone can type (valo://app/agent/reyna/x),
-     * so its arguments are UNTRUSTED input: return null instead of crashing on an unknown id.
-     */
-    fun agentOrNull(id: String): Agent? = agents.firstOrNull { it.id == id }
 }

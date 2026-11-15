@@ -1,0 +1,71 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application
+        android:allowBackup="true"
+        android:label="Valo Deep Links"
+        android:theme="@android:style/Theme.Material.NoActionBar">
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTop">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <!--
+                DEEP LINKS: "open MainActivity for any valo://app/... URL".
+
+                An <intent-filter> is how Android decides which Activity can handle an
+                IMPLICIT Intent (one that says what to do, not which class to start). A deep
+                link is exactly that: Intent(ACTION_VIEW, Uri.parse("valo://app/career")).
+                For the Intent to reach us, ALL of these must match:
+
+                  <action VIEW>         The standard action for "show the thing at this URI".
+                                        Browsers, chat apps and adb all send VIEW for links.
+
+                  <category DEFAULT>    startActivity() silently adds CATEGORY_DEFAULT to
+                                        every implicit Intent. Without this line the filter
+                                        never matches, and nothing happens. Easy to forget.
+
+                  <category BROWSABLE>  Allows web browsers (and apps that open links the way a
+                                        browser does) to start us. Without it, a link tapped in
+                                        Chrome is ignored even though adb still works.
+
+                  <data scheme host>    Which URIs. Here: scheme "valo", host "app", any path.
+
+                WHY NO android:path / pathPrefix HERE?
+                The manifest only decides "this URI belongs to this app". Picking the SCREEN
+                from the path (/agent/..., /career) is the NavController's job, using the
+                navDeepLink patterns in ValoNavApp.kt. So adding a new deep-linkable screen
+                needs no manifest change, as long as it stays under valo://app.
+                A URI like valo://app/nonsense still opens the app (it passes this filter),
+                but matches no navDeepLink, so you simply land on the Lobby.
+
+                CUSTOM SCHEME vs HTTPS ("App Links")
+                valo:// is a custom scheme: easy to test, no website needed. But any app can
+                claim the same scheme, and browsers don't make it clickable as plain text.
+                Production apps usually use https://valo.example.com/... with
+                android:autoVerify="true" plus an assetlinks.json file on that domain, which
+                proves you own it so Android opens your app without asking.
+                The navDeepLink code would stay the same, only the base URL changes.
+
+                The other attributes on <activity> above:
+                  exported="true"        Other apps may start this Activity. Required for the
+                                         launcher AND for deep links. It also means anyone can
+                                         send any URL, so treat the values as untrusted.
+                  launchMode="singleTop" If MainActivity is already on top of its task, Android
+                                         reuses it and calls onNewIntent() instead of stacking a
+                                         second copy (two copies = two separate back stacks).
+                                         ValoNavApp forwards that Intent to the NavController.
+            -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="valo" android:host="app" />
+            </intent-filter>
+        </activity>
+    </application>
+
+</manifest>

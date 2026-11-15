@@ -354,15 +354,17 @@ To highlight the selected tab, use `currentEntry?.destination?.hierarchy?.any { 
 
 ### Deep links
 
-A URL can open a screen directly, and Navigation builds the back stack for it:
+A URL such as `valo://app/agent/sova/Haven` can open a screen directly, and Navigation builds a back stack for it:
 
 ```kotlin
 composable<AgentDetail>(
-    deepLinks = listOf(navDeepLink<AgentDetail>(basePath = "valo://agent"))
+    deepLinks = listOf(navDeepLink<AgentDetail>(basePath = "valo://app/agent"))
 ) { ... }
 ```
 
-You also need a matching `<intent-filter>` in `AndroidManifest.xml`. This is where `navigateUp()` and `popBackStack()` behave differently: if your app was opened from another app's deep link, **Up** goes to your app's parent screen, while **Back** returns to the app that opened you.
+You also need a matching `<intent-filter>` in `AndroidManifest.xml`. This is also where `navigateUp()` and `popBackStack()` finally behave differently.
+
+**`27_deep_links`** is this same app with deep links added, and its README covers them in depth: the manifest filter, how `navDeepLink` builds the URL from the route, cold vs. warm start (`onNewIntent`), the back stack a link creates, Up vs. Back, and validating untrusted arguments.
 
 ### Transitions
 

@@ -1,9 +1,5 @@
 package com.paras.navigation
 
-import android.content.Intent
-import androidx.activity.ComponentActivity
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -17,21 +13,16 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.core.util.Consumer
 import androidx.navigation.NavDestination
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.navDeepLink
 import androidx.navigation.toRoute
 import com.paras.navigation.screens.AgentDetailScreen
 import com.paras.navigation.screens.AgentSelectScreen
@@ -85,26 +76,6 @@ fun ValoNavApp() {
     val navController = rememberNavController()
 
     // ----------------------------------------------------------------------------------------
-    // DEEP LINKS, PART 1: an Intent arriving while the app is ALREADY OPEN
-    // ----------------------------------------------------------------------------------------
-    // Cold start: nothing to do. When NavHost sets the graph, the NavController reads
-    // activity.intent by itself and, if its URI matches a navDeepLink below, opens that screen.
-    //
-    // Warm start: the manifest says launchMode="singleTop", so Android does NOT create a new
-    // Activity. It calls onNewIntent() on the existing one, and NavController knows nothing
-    // about that. We forward the Intent with handleDeepLink(), which matches the URI against
-    // the graph and rebuilds the back stack.
-    //
-    // DisposableEffect registers the listener once and removes it when this composable leaves
-    // (e.g. the Activity is destroyed), so we don't leak the NavController.
-    val activity = LocalContext.current as ComponentActivity
-    DisposableEffect(navController, activity) {
-        val listener = Consumer<Intent> { intent -> navController.handleDeepLink(intent) }
-        activity.addOnNewIntentListener(listener)
-        onDispose { activity.removeOnNewIntentListener(listener) }
-    }
-
-    // ----------------------------------------------------------------------------------------
     // OBSERVING WHERE WE ARE
     // ----------------------------------------------------------------------------------------
     // currentBackStackEntryAsState() turns "the top entry" into Compose State. Every navigate()
@@ -136,7 +107,7 @@ fun ValoNavApp() {
                         // Inside a single app they do the same thing: remove the top entry.
                         // They only differ when the app was opened from a DEEP LINK by another
                         // app: Up stays in your app and goes to the logical parent, while Back
-                        // returns to the app that opened you.
+                        // returns to the app that opened you. 27_deep_links shows this.
                         IconButton(onClick = { navController.navigateUp() }) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                         }
@@ -196,33 +167,7 @@ fun ValoNavApp() {
             // LOBBY  (start destination, RECEIVES a result)
             // ================================================================================
             // The lambda parameter `entry` is this screen's NavBackStackEntry.
-            // --------------------------------------------------------------------------------
-            // DEEP LINKS, PART 2: which URLs open which screen
-            // --------------------------------------------------------------------------------
-            // composable<R>(deepLinks = listOf(navDeepLink<R>(basePath = ...))) says "this URL
-            // also opens this screen". With the type-safe navDeepLink<R>, you give only the
-            // basePath. Navigation appends the route's arguments the same way it builds the
-            // route itself (required -> /{path}, default/nullable -> ?query=), so:
-            //
-            //   navDeepLink<AgentDetail>(basePath = "valo://app/agent")
-            //       matches  valo://app/agent/{agentId}/{map}
-            //
-            // and the URL values land in the entry's arguments, so toRoute<AgentDetail>()
-            // works exactly as if navigate(AgentDetail(...)) had been called.
-            //
-            // THE SYNTHETIC BACK STACK
-            // A deep link never leaves you on a lonely screen. Navigation pushes the graph's
-            // start destination first, so valo://app/agent/jett/Ascent gives [Lobby, AgentDetail]
-            // and Back/Up returns to the Lobby instead of exiting the app.
-            //
-            // TRY IT (app installed, running or not):
-            //   adb shell am start -a android.intent.action.VIEW -d "valo://app/career"
-            //   adb shell am start -a android.intent.action.VIEW -d "valo://app/agents/Bind"
-            //   adb shell am start -a android.intent.action.VIEW -d "valo://app/agent/sova/Haven"
-            //   adb shell am start -a android.intent.action.VIEW -d "valo://app/agent/nobody/Haven"
-            composable<Lobby>(
-                deepLinks = listOf(navDeepLink<Lobby>(basePath = "$DEEP_LINK_BASE/lobby")),
-            ) { entry ->
+            composable<Lobby> { entry ->
                 // RECEIVING A RESULT
                 // MapPick writes "picked_map" into THIS entry's savedStateHandle and pops itself
                 // (see MapPick below). Here we read it.
@@ -289,10 +234,7 @@ fun ValoNavApp() {
             // ================================================================================
             // AGENT SELECT  (RECEIVES an argument)
             // ================================================================================
-            composable<AgentSelect>(
-                // valo://app/agents/{map}
-                deepLinks = listOf(navDeepLink<AgentSelect>(basePath = "$DEEP_LINK_BASE/agents")),
-            ) { entry ->
+            composable<AgentSelect> { entry ->
                 // 4. READING ARGUMENTS
                 //
                 // When we called navigate(AgentSelect("Ascent")), Navigation encoded the data
@@ -322,25 +264,12 @@ fun ValoNavApp() {
             // ================================================================================
             // AGENT DETAIL  (two arguments, and clears the stack on LOCK IN)
             // ================================================================================
-            composable<AgentDetail>(
-                // valo://app/agent/{agentId}/{map}
-                deepLinks = listOf(navDeepLink<AgentDetail>(basePath = "$DEEP_LINK_BASE/agent")),
-            ) { entry ->
+            composable<AgentDetail> { entry ->
                 val route = entry.toRoute<AgentDetail>()
-                // id -> object lookup happens HERE, at the navigation layer, so the screen
-                // just receives a ready-to-use Agent.
-                //
-                // agentOrNull, not agent(): this screen is deep-linkable, so agentId may be
-                // anything a user typed in a URL. Show a message instead of crashing.
-                val agent = ValoData.agentOrNull(route.agentId)
-                if (agent == null) {
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text("Unknown agent: ${route.agentId}")
-                    }
-                    return@composable
-                }
                 AgentDetailScreen(
-                    agent = agent,
+                    // id -> object lookup happens HERE, at the navigation layer, so the screen
+                    // just receives a ready-to-use Agent.
+                    agent = ValoData.agent(route.agentId),
                     map = route.map,
                     onLockIn = {
                         navController.navigate(Match(route.agentId, route.map)) {
@@ -400,9 +329,7 @@ fun ValoNavApp() {
             // ================================================================================
             // CAREER  (no arguments, opened with launchSingleTop from the top bar)
             // ================================================================================
-            composable<Career>(
-                deepLinks = listOf(navDeepLink<Career>(basePath = "$DEEP_LINK_BASE/career")),
-            ) {
+            composable<Career> {
                 CareerScreen()
             }
         }

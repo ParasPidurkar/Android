@@ -77,18 +77,3 @@ object Career
  * on the spelling. (Results are still untyped key/value pairs, unlike routes.)
  */
 const val PICKED_MAP_KEY = "picked_map"
-
-/**
- * Base URI for every deep link into this app. Must match the <data android:scheme/host> in
- * AndroidManifest.xml, otherwise Android never delivers the Intent to MainActivity.
- *
- *   valo://app/lobby
- *   valo://app/career
- *   valo://app/agents/{map}                 -> AgentSelect(map)
- *   valo://app/agent/{agentId}/{map}        -> AgentDetail(agentId, map)
- *
- * Deliberately NOT deep-linkable:
- *   - MapPick: it only makes sense when someone (Lobby) is waiting for its result.
- *   - Match:   you should only get there by locking in, not by typing a URL.
- */
-const val DEEP_LINK_BASE = "valo://app"
